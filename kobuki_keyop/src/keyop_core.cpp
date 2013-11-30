@@ -112,7 +112,6 @@ bool KeyOpCore::init()
    ** Publishers
    **********************/
   velocity_publisher_ = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
-  motor_power_publisher_ = nh.advertise<kobuki_msgs::MotorPower>("motor_power", 1);
 
   /*********************
    ** Velocities
@@ -133,48 +132,8 @@ bool KeyOpCore::init()
   }
   ecl::MilliSleep millisleep;
   int count = 0;
-  bool connected = false;
-  while (!connected)
-  {
-    if (motor_power_publisher_.getNumSubscribers() > 0)
-    {
-      connected = true;
-      break;
-    }
-    if (count == 6)
-    {
-      connected = false;
-      break;
-    }
-    else
-    {
-      ROS_WARN_STREAM("KeyOp: could not connect, trying again after 500ms...");
-      try
-      {
-        millisleep(500);
-      }
-      catch (ecl::StandardException e)
-      {
-        ROS_ERROR_STREAM("Waiting has been interrupted.");
-        ROS_DEBUG_STREAM(e.what());
-        return false;
-      }
-      ++count;
-    }
-  }
-  if (!connected)
-  {
-    ROS_ERROR("KeyOp: could not connect.");
-    ROS_ERROR("KeyOp: check remappings for enable/disable topics).");
-  }
-  else
-  {
-    kobuki_msgs::MotorPower power_cmd;
-    power_cmd.state = kobuki_msgs::MotorPower::ON;
-    motor_power_publisher_.publish(power_cmd);
-    ROS_INFO("KeyOp: connected.");
-    power_status = true;
-  }
+  bool connected = true;
+  power_status = true;
 
   // start keyboard input thread
   thread.start(&KeyOpCore::keyboardInputLoop, *this);
@@ -360,7 +319,6 @@ void KeyOpCore::disable()
     ROS_INFO("KeyOp: die, die, die (disabling power to the device's motor system).");
     kobuki_msgs::MotorPower power_cmd;
     power_cmd.state = kobuki_msgs::MotorPower::OFF;
-    motor_power_publisher_.publish(power_cmd);
     power_status = false;
   }
   else
@@ -388,7 +346,6 @@ void KeyOpCore::enable()
     ROS_INFO("KeyOp: Enabling power to the device subsystem.");
     kobuki_msgs::MotorPower power_cmd;
     power_cmd.state = kobuki_msgs::MotorPower::ON;
-    motor_power_publisher_.publish(power_cmd);
     power_status = true;
   }
   else
